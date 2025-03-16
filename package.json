@@ -1,14 +1,21 @@
 {
 	"name": "almuten-scraper",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "A tool for scraping and calculating almuten (planetary dignity) in astrology",
-	"module": "src/index.ts",
-	"main": "dist/index.js",
+	"module": "dist/index.js",
+	"main": "dist/index.cjs",
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"files": [
 		"dist"
 	],
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
 	"author": "Oliver Wan",
 	"license": "MIT",
 	"devDependencies": {
@@ -27,7 +34,10 @@
 		"moment-timezone": "^0.5.47"
 	},
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node && tsc --declaration --emitDeclarationOnly --outDir dist",
+		"build:esm": "bun build ./src/index.ts --outdir ./dist --target node",
+		"build:cjs": "bun build ./src/index.ts --format=cjs --target node --outfile=./dist/index.cjs",
+		"build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+		"build": "bun run build:esm && bun run build:cjs && bun run build:types",
 		"prepublishOnly": "bun run build"
 	},
 	"repository": {

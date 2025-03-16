@@ -23,6 +23,8 @@ bun add almuten-scraper
 
 ## Usage
 
+### ESM (ECMAScript Modules)
+
 ```typescript
 import { AlmutenScraper, BirthInfo } from "almuten-scraper";
 
@@ -55,6 +57,20 @@ try {
 } finally {
 	// Always close the scraper when done
 	await scraper.close();
+}
+```
+
+### CommonJS
+
+```javascript
+// For CommonJS environments (Node.js without "type": "module" in package.json)
+const { AlmutenScraper } = require("almuten-scraper");
+
+// Or alternatively using dynamic import
+async function run() {
+	const { AlmutenScraper } = await import("almuten-scraper");
+
+	// Rest of the code...
 }
 ```
 

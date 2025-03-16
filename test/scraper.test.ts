@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll, mock } from "bun:test";
 import { AlmutenScraper, type BirthInfo } from "../src";
-import axios from "axios";
 
 // 测试数据
 const testBirthInfo: BirthInfo = {
