@@ -1,6 +1,6 @@
 {
 	"name": "almuten-scraper",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "A tool for scraping and calculating almuten (planetary dignity) in astrology",
 	"module": "src/index.ts",
 	"main": "dist/index.js",
@@ -29,5 +29,13 @@
 	"scripts": {
 		"build": "bun build ./src/index.ts --outdir ./dist --target node && tsc --declaration --emitDeclarationOnly --outDir dist",
 		"prepublishOnly": "bun run build"
-	}
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/wzx790020667/almuten-scraper.git"
+	},
+	"bugs": {
+		"url": "https://github.com/wzx790020667/almuten-scraper/issues"
+	},
+	"homepage": "https://github.com/wzx790020667/almuten-scraper#readme"
 }
