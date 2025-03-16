@@ -273,10 +273,6 @@ export class AlmutenScraper {
 	public async getHoroscopeData() {
 		const html = await this.fetchPage("https://almuten.net");
 
-		if (html) {
-			Bun.write("./test/fetchPage.html", html);
-		}
-
 		if (!html) {
 			throw new Error("Failed to fetch page");
 		}
