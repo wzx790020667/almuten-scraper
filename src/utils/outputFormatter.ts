@@ -60,12 +60,10 @@ export const outputHouses = (houses: typeof HOUSES) => {
 
 		// 构建落入行星描述
 		let occupantsDesc = "";
-		if (houseData.occupants && houseData.occupants.length > 0) {
-			const occupantNames = houseData.occupants.map(planet => {
-				return zhTranslations[planet as keyof typeof zhTranslations] || planet;
-			});
-			occupantsDesc = `落入行星：${occupantNames.join("、")}`;
-		}
+		const occupantNames = houseData.occupants.map(planet => {
+			return zhTranslations[planet as keyof typeof zhTranslations] || planet;
+		});
+		occupantsDesc = `落入行星：${occupantNames.length > 0 ? occupantNames.join("、") : "无"}`;
 
 		// 构建飞入宫位描述
 		let flyingToDesc = "";

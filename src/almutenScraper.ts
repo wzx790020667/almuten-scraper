@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import { type ScraperConfig } from "./types";
 import { formatCoordinates } from "./utils/dateFormatter";
 import { TimezoneHelper } from "./utils/timezoneHelper";
-import { ASPECT_GRIDS, FEATURES, HOUSES, PLANETS } from "./settings/constants";
+import { ASPECT_GRIDS, EXLCUDED_POINTS, FEATURES, HOUSES, PLANETS } from "./settings/constants";
 import { cloneDeep, get, set } from "lodash";
 import { CHAR_TO_ASPECT, CHAR_TO_PLANET, CHAR_TO_SIGN, SIGN_TO_RULERS } from "./settings/mappingTable";
 import type { Aspect, GrandCross, GrandTrine, Kite, Stellium } from "./settings/types";
@@ -182,6 +182,35 @@ export class AlmutenScraper {
 	}
 
 	/**
+	 * 填入宫位落入行星数据
+	 */
+	public injectHouseOccupants(houses: typeof HOUSES, planets: typeof PLANETS) {
+		// Initialize occupants arrays for all houses
+		Object.keys(houses).forEach(houseNum => {
+			set(houses, [houseNum, "occupants"], [] as string[]);
+		});
+
+		// Iterate through planets and add them to their respective house's occupants array
+		Object.entries(planets).forEach(([planetName, planetData]) => {
+			const houseNum = planetData.house;
+
+			// Skip excluded points
+			if (EXLCUDED_POINTS.includes(planetName)) {
+				return;
+			}
+
+			if (houseNum) {
+				// Get current occupants array for the house
+				const currentOccupants = get(houses, [houseNum, "occupants"], [] as string[]);
+				// Add the planet to occupants
+				currentOccupants.push(planetName);
+				// Update the house's occupants data
+				set(houses, [houseNum, "occupants"], currentOccupants);
+			}
+		});
+	}
+
+	/**
 	 * 填入行星特征数据
 	 */
 	public injectFeatureInfo($: cheerio.CheerioAPI, features: typeof FEATURES) {
@@ -289,6 +318,7 @@ export class AlmutenScraper {
 
 		const houses = cloneDeep(HOUSES);
 		this.injectHousesInfo($, houses);
+		this.injectHouseOccupants(houses, planets);
 		this.calculateFlyingHouse(planets, houses);
 
 		const features = cloneDeep(FEATURES);

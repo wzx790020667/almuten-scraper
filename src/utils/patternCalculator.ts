@@ -202,7 +202,7 @@ export const calculateStellium = (planets: typeof PLANETS): Stellium[] => {
 
 		// 检查容许度（宫位跨度的1/3范围内）
 		// 假设每个宫位跨度为30度
-		const houseOrb = 30 / 3; // 10度
+		const houseOrb = 18; // 18度
 
 		// 计算每个天体在宫位内的相对位置
 		const housePositions = points.map(([_, planetData]) => {

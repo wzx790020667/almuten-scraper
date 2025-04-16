@@ -288,3 +288,4 @@ export const FEATURES: string[] = [];
 
 // 定义不参与格局计算的天体
 export const EXCLUDED_CELESTIALS = ["Uranus", "Neptune", "Pluto", "North_Node", "Ascendant", "Midheaven"];
+export const EXLCUDED_POINTS = ["North_Node", "Ascendant", "Midheaven"];
