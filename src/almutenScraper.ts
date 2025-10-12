@@ -34,7 +34,7 @@ export class AlmutenScraper {
 	 * 发送HTTP请求获取页面内容
 	 * @private
 	 */
-	public async fetchPage(url: string): Promise<string> {
+	public async fetchPage(url: string): Promise<{ data: string; payload: any }> {
 		// 转换经纬度格式
 		const { latDegrees, latMinutes, latDirection, lonDegrees, lonMinutes, lonDirection } = formatCoordinates(
 			this.config.birthInfo.latitude,
@@ -78,7 +78,10 @@ export class AlmutenScraper {
 			},
 		});
 
-		return response.data;
+		return {
+			data: response.data,
+			payload,
+		};
 	}
 
 	/**
@@ -271,7 +274,7 @@ export class AlmutenScraper {
 	 * @private
 	 */
 	public async getHoroscopeData() {
-		const html = await this.fetchPage("https://almuten.net");
+		const { data: html, payload } = await this.fetchPage("https://almuten.net");
 
 		if (!html) {
 			throw new Error("Failed to fetch page");
@@ -302,6 +305,7 @@ export class AlmutenScraper {
 		const featuresOutput = outputFeatures(features);
 
 		return {
+			payload,
 			planets,
 			houses,
 			patterns,
