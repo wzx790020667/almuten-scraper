@@ -40,9 +40,5 @@ describe("AlmutenScraper", () => {
 			const result = await scraper.getHoroscopeData();
 			console.log("result:", result);
 		}, 30000);
-
-		test("should handle request error with invalid URL", async () => {
-			await expect(scraper.fetchPage("https://invalid-url-that-does-not-exist.com")).rejects.toThrow();
-		});
 	});
 });

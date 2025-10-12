@@ -302,10 +302,14 @@ export class AlmutenScraper {
 		const featuresOutput = outputFeatures(features);
 
 		return {
-			planets: planetsOutput,
-			houses: housesOutput,
-			patterns: patternsOutput,
-			features: featuresOutput,
+			planets,
+			houses,
+			patterns,
+			features,
+			planetsOutput: planetsOutput,
+			housesOutput: housesOutput,
+			patternsOutput: patternsOutput,
+			featuresOutput: featuresOutput,
 		};
 	}
 }
