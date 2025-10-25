@@ -59,7 +59,7 @@ export class AlmutenScraper {
 				this.config.birthInfo.latitude,
 				this.config.birthInfo.longitude
 			),
-			hsys: "P",
+			hsys: "B",
 			submit: "更新星图",
 		};
 
