@@ -182,12 +182,23 @@ export const calculateStellium = (planets: typeof PLANETS): Stellium[] => {
 		const maxPos = Math.max(...positions);
 		if (maxPos - minPos > 15) continue;
 
+		// 计算主要集中的宫位
+		const houses = points
+			.map(([_, data]: [string, any]) => data.house?.toString())
+			.filter((h: any): h is string => !!h);
+		const houseCounts = houses.reduce<Record<string, number>>((acc, house) => {
+			acc[house] = (acc[house] || 0) + 1;
+			return acc;
+		}, {});
+		const dominateHouse = Object.entries(houseCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
 		// 添加到结果列表
 		stelliums.push({
 			type: "sign",
 			location: sign,
 			points: points.map(([planetName]) => planetName),
 			count: points.length,
+			dominateLocation: dominateHouse,
 		});
 	}
 
@@ -216,12 +227,21 @@ export const calculateStellium = (planets: typeof PLANETS): Stellium[] => {
 		const maxPos = Math.max(...housePositions);
 		if (maxPos - minPos > houseOrb) continue;
 
+		// 计算主要集中的星座
+		const signs = points.map(([_, data]: [string, any]) => data.sign).filter((s: any): s is string => !!s);
+		const signCounts = signs.reduce<Record<string, number>>((acc, sign) => {
+			acc[sign] = (acc[sign] || 0) + 1;
+			return acc;
+		}, {});
+		const dominateSign = Object.entries(signCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
 		// 添加到结果列表
 		stelliums.push({
 			type: "house",
 			location: house,
 			points: points.map(([planetName]) => planetName),
 			count: points.length,
+			dominateLocation: dominateSign,
 		});
 	}
 

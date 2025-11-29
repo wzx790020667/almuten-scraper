@@ -1,5 +1,7 @@
-import type { FEATURES, HOUSES, PLANETS } from "../settings/constants";
+import { EXCLUDED_CELESTIALS, type FEATURES, type HOUSES, type PLANETS } from "../settings/constants";
 import type { Aspect, GrandCross, GrandTrine, Kite, Stellium, TSquare } from "../settings/types";
+import type { ScraperOptions } from "../types";
+import { type InterceptedChain, SIGN_ORDER } from "./interceptionCalculator";
 import * as zhTranslations from "../i18n/zh.json";
 
 /**
@@ -35,7 +37,11 @@ export const outputPlanets = (planets: typeof PLANETS) => {
 		// 构建完整的行星描述
 		const planetDescription = `${planetChineseName}, 星座：${signChineseName}, 宫位：${planetData.house || "未知"}, ${
 			planetData.score || 0
-		}分${aspectDescriptions.length > 0 ? "，相位：" + aspectDescriptions.join(", ") : ""}`;
+		}分${planetData.is_intercepted ? " (被截夺)" : ""}${
+			planetData.is_moved_by_5_deg
+				? ` (跨越 ${planetData.geometric_house}宫 -> ${planetData.final_house}宫)`
+				: ""
+		}${aspectDescriptions.length > 0 ? "，相位：" + aspectDescriptions.join(", ") : ""}`;
 
 		result.push(planetDescription);
 	}
@@ -46,9 +52,10 @@ export const outputPlanets = (planets: typeof PLANETS) => {
 /**
  * 将宫位数据转换为格式化的字符串数组
  * @param houses 宫位数据
+ * @param options 配置选项
  * @returns 格式化的字符串数组
  */
-export const outputHouses = (houses: typeof HOUSES) => {
+export const outputHouses = (houses: typeof HOUSES, options?: ScraperOptions) => {
 	const result: string[] = [];
 
 	for (const [houseNumber, houseData] of Object.entries(houses)) {
@@ -61,25 +68,41 @@ export const outputHouses = (houses: typeof HOUSES) => {
 		// 构建落入行星描述
 		let occupantsDesc = "";
 		if (houseData.occupants && houseData.occupants.length > 0) {
-			const occupantNames = houseData.occupants.map(planet => {
-				return zhTranslations[planet as keyof typeof zhTranslations] || planet;
-			});
-			occupantsDesc = `落入行星：${occupantNames.join("、")}`;
+			let occupants = houseData.occupants;
+			if (options?.traditional) {
+				occupants = occupants.filter(p => !EXCLUDED_CELESTIALS.includes(p));
+			}
+			
+			if (occupants.length > 0) {
+				const occupantNames = occupants.map(planet => {
+					return zhTranslations[planet as keyof typeof zhTranslations] || planet;
+				});
+				occupantsDesc = `落入行星：${occupantNames.join("、")}`;
+			}
 		}
 
 		// 构建飞入宫位描述
 		let flyingToDesc = "";
 		if (houseData.flyingTo) {
-			const flyingToHouse = typeof houseData.flyingTo === "number" ? houseData.flyingTo : houseData.flyingTo;
-			flyingToDesc = `飞入宫位：${flyingToHouse}`;
+			const flyingTo = Array.isArray(houseData.flyingTo) ? houseData.flyingTo : [houseData.flyingTo];
+			// Remove duplicates just in case
+			const uniqueFlyingTo = [...new Set(flyingTo)];
+			flyingToDesc = `飞入宫位：(${uniqueFlyingTo.join("、")})`;
 		}
 
 		let rulers = "";
 		if (houseData.rulers && houseData.rulers.length > 0) {
-			const rulerNames = houseData.rulers.map(planet => {
-				return zhTranslations[planet as keyof typeof zhTranslations] || planet;
-			});
-			rulers = `宫主星：${rulerNames.join("、")}`;
+			let houseRulers = houseData.rulers;
+			if (options?.traditional) {
+				houseRulers = houseRulers.filter(p => !EXCLUDED_CELESTIALS.includes(p));
+			}
+
+			if (houseRulers.length > 0) {
+				const rulerNames = houseRulers.map(planet => {
+					return zhTranslations[planet as keyof typeof zhTranslations] || planet;
+				});
+				rulers = `宫主星：${rulerNames.join("、")}`;
+			}
 		}
 
 		// 构建完整的宫位描述
@@ -152,12 +175,24 @@ export const outputPatterns = (patterns: [GrandTrine[], GrandCross[], Kite[], St
 			});
 
 			// 获取星座或宫位的中文名称
-			let locationName = stellium.location;
+			let description = "";
 			if (stellium.type === "sign") {
-				locationName = zhTranslations[stellium.location as keyof typeof zhTranslations] || stellium.location;
+				const signName = zhTranslations[stellium.location as keyof typeof zhTranslations] || stellium.location;
+				description = `${signName}座`;
+				if (stellium.dominateLocation) {
+					description += `（${stellium.dominateLocation}宫）`;
+				}
+			} else {
+				// type === "house"
+				description = `${stellium.location}宫`;
+				if (stellium.dominateLocation) {
+					const signName =
+						zhTranslations[stellium.dominateLocation as keyof typeof zhTranslations] || stellium.dominateLocation;
+					description += `（${signName}座）`;
+				}
 			}
 
-			return `${locationName}座,（${planetNames.join(",")}）,数量：${stellium.count}`;
+			return `${description},（${planetNames.join(",")}）,数量：${stellium.count}`;
 		});
 		result.push(`星群格局：${stelliumDescriptions.join(", ")}`);
 	} else {
@@ -182,6 +217,28 @@ export const outputFeatures = (features: typeof FEATURES) => {
 		}
 	} else {
 		result.push("特征：无");
+	}
+
+	return result;
+};
+
+/**
+ * 将截夺信息转换为格式化的字符串数组
+ * @param interceptedChains 截夺链数组
+ * @returns 格式化的字符串数组
+ */
+export const outputInterceptions = (interceptedChains: InterceptedChain[]) => {
+	const result: string[] = [];
+
+	if (interceptedChains && interceptedChains.length > 0) {
+		for (const chain of interceptedChains) {
+			const signKey = SIGN_ORDER[chain.intercepted_sign_idx];
+			const signName = zhTranslations[signKey as keyof typeof zhTranslations] || signKey;
+			
+			result.push(`宫位 ${chain.container_house_idx} (跨度 ${chain.house_span_degrees.toFixed(2)}°) 截夺了 ${signName}座`);
+		}
+	} else {
+		result.push("截夺：无");
 	}
 
 	return result;

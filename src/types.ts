@@ -169,6 +169,11 @@ export interface HoroscopeData {
 	 * 其他星盘特殊点
 	 */
 	specialPoints?: PlanetInfo[];
+
+	/**
+	 * 截夺信息输出
+	 */
+	interceptedChainsOutput?: string[];
 }
 
 export interface ScraperConfig {
@@ -192,4 +197,14 @@ export interface ScraperOptions {
 	 * 是否使用传统占星术
 	 */
 	traditional?: boolean;
+
+	/**
+	 * 宫位容许度 (默认 5 度)
+	 */
+	orb?: number;
+
+	/**
+	 * 是否使用双飞宫逻辑 (当行星被5度规则移动时，同时计算几何宫位和最终宫位)
+	 */
+	useDualFlyingHouse?: boolean;
 }

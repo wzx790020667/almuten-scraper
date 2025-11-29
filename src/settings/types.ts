@@ -30,10 +30,17 @@ export interface House {
  */
 export interface Planet {
 	sign: string | null;
-	house: number | null;
-	pos: number | null;
-	score: number | null;
+	house: number | string | null;
+	pos: number | string | null;
+	score: number | string | null;
 	aspects: Aspect[];
+	// Analysis fields
+	abs_degree?: number;
+	sign_idx?: number;
+	final_house?: number;
+	is_moved_by_5_deg?: boolean;
+	is_intercepted?: boolean;
+	geometric_house?: number;
 }
 
 /**
@@ -59,6 +66,7 @@ export interface Stellium {
 	location: string;
 	points: string[];
 	count: number;
+	dominateLocation?: string;
 }
 
 export interface TSquare {

@@ -9,9 +9,22 @@ import { CHAR_TO_ASPECT, CHAR_TO_PLANET, CHAR_TO_SIGN, SIGN_TO_RULERS } from "./
 import type { Aspect, GrandCross, GrandTrine, Kite, Stellium } from "./settings/types";
 import { caclulateGrandTrine, calculateGrandCross, calculateKite, calculateStellium } from "./utils/patternCalculator";
 import { calculateBidirectionalAspects } from "./utils/aspectCalculator";
-import { outputFeatures, outputHouses, outputPatterns, outputPlanets } from "./utils/outputFormatter";
+import {
+	outputFeatures,
+	outputHouses,
+	outputInterceptions,
+	outputPatterns,
+	outputPlanets,
+} from "./utils/outputFormatter";
 import zhTranslations from "./i18n/zh.json";
 import { EXCLUDED_CELESTIALS } from "./settings/constants";
+import {
+	calculateInterceptions,
+	calculatePlanetPlacement,
+	normalizeDegree,
+	type InterceptionResult,
+	type PlanetAnalysisResult,
+} from "./utils/interceptionCalculator";
 
 /**
  * AlmutenScraper 类 - 用于从almuten.net爬取星盘数据
@@ -243,9 +256,22 @@ export class AlmutenScraper {
 
 				const toHouses = [];
 				for (const ruler of rulers) {
-					const toHouse = get(planets, ruler).house;
-					if (toHouse) {
-						toHouses.push(toHouse);
+					const planetData = get(planets, ruler);
+					// Use final_house if available (from analysis), otherwise fallback to original house string
+					// Note: planetData.house is string, planetData.final_house is number
+					
+					const useDual = this.config.options?.useDualFlyingHouse ?? false;
+					
+					if (planetData.final_house) {
+						toHouses.push(planetData.final_house.toString());
+						
+						// Dual Flying House Logic
+						if (useDual && planetData.is_moved_by_5_deg && planetData.geometric_house) {
+							toHouses.push(planetData.geometric_house.toString());
+						}
+					} else if (planetData.house) {
+						// Fallback for when analysis hasn't run or failed (shouldn't happen if moved correctly)
+						toHouses.push(planetData.house);
 					}
 				}
 
@@ -292,17 +318,69 @@ export class AlmutenScraper {
 
 		const houses = cloneDeep(HOUSES);
 		this.injectHousesInfo($, houses);
-		this.calculateFlyingHouse(planets, houses);
+		// Moved calculateFlyingHouse to after planet analysis
 
 		const features = cloneDeep(FEATURES);
 		this.injectFeatureInfo($, features);
 
+		// --- New Interception & 5-Degree Rule Logic ---
+
+		// 1. Prepare House Cusps for Calculation
+		const houseCuspsForCalc = Object.entries(houses).map(([houseNum, data]) => {
+			return {
+				houseNum: parseInt(houseNum),
+				sign: data.sign!, // Assumes sign is populated
+				degree: normalizeDegree(data.cusp!), // Assumes cusp is populated e.g. "25°30"
+			};
+		});
+
+		// 2. Calculate Interceptions
+		const interceptionResult = calculateInterceptions(houseCuspsForCalc);
+		const { interceptedChains, interceptedSigns } = interceptionResult;
+
+		// 3. Analyze Planets (5-Degree Rule & Interception)
+		const planetsAnalyzed: PlanetAnalysisResult[] = [];
+		const orb = this.config.options?.orb ?? 5.0; // Default to 5 degrees if not specified
+		
+		// We need to iterate over the planets object
+		for (const [planetName, planetData] of Object.entries(planets)) {
+			// Skip if missing essential data (e.g. some points might not have pos/sign if scraping failed or not present)
+			if (!planetData.sign || !planetData.pos) continue;
+
+			const planetDegree = normalizeDegree(planetData.pos);
+			
+			const analysis = calculatePlanetPlacement(
+				planetName,
+				planetData.sign,
+				planetDegree,
+				houseCuspsForCalc,
+				interceptedSigns,
+				orb
+			);
+			
+			planetsAnalyzed.push(analysis);
+
+			// Merge analysis results back into the planet object
+			Object.assign(planetData, {
+				abs_degree: analysis.abs_degree,
+				sign_idx: analysis.sign_idx,
+				final_house: analysis.final_house,
+				is_moved_by_5_deg: analysis.is_moved_by_5_deg,
+				is_intercepted: analysis.is_intercepted,
+				geometric_house: analysis.geometric_house,
+			});
+		}
+
 		const patterns = this.calculatePattern(planets);
 
+		// Calculate Flying House (After analysis to use final_house and geometric_house)
+		this.calculateFlyingHouse(planets, houses);
+
 		const planetsOutput = outputPlanets(planets);
-		const housesOutput = outputHouses(houses);
+		const housesOutput = outputHouses(houses, this.config.options);
 		const patternsOutput = outputPatterns(patterns);
 		const featuresOutput = outputFeatures(features);
+		const interceptedChainsOutput = outputInterceptions(interceptedChains);
 
 		return {
 			payload,
@@ -314,6 +392,9 @@ export class AlmutenScraper {
 			housesOutput: housesOutput,
 			patternsOutput: patternsOutput,
 			featuresOutput: featuresOutput,
+			interceptedChainsOutput: interceptedChainsOutput,
+			interceptedChains,
+			planetsAnalyzed,
 		};
 	}
 }
